@@ -1,6 +1,11 @@
 import Vue from "vue";
 import VueRouter from "vue-router";
+
 import Home from "../views/Home.vue";
+import Contact from "../views/Contact.vue";
+
+import {firebaseApp} from '../services/firebaseService';
+import {getAuth} from 'firebase/auth';
 
 Vue.use(VueRouter);
 
@@ -11,13 +16,12 @@ const routes = [
     component: Home,
   },
   {
-    path: "/dashboard",
-    name: "Dashboard",
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () =>
-      import(/* webpackChunkName: "about" */ "../views/Dashboard.vue"),
+    path: "/contact",
+    name: "Contact",
+    component: Contact,
+    meta: {
+      requireAuth: true
+    }
   },
 ];
 
@@ -27,4 +31,15 @@ const router = new VueRouter({
   routes,
 });
 
+router.beforeEach((to, from, next) => {
+  const requireAuth = to.matched.some(record => record.meta.requireAuth);
+  const auth = getAuth(firebaseApp)
+  const isAuthenticated = auth.currentUser
+
+  if (!isAuthenticated && requireAuth){
+    next('/');
+  }else{
+    next();
+  }
+})
 export default router;

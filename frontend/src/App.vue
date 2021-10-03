@@ -1,13 +1,7 @@
 <template>
   <v-app>
-    <v-main class="mx-8">
+    <v-main class="deep-purple">
       <router-view />
     </v-main>
   </v-app>
 </template>
-
-<script>
-export default {
-  name: "App"
-};
-</script>
