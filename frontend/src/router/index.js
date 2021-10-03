@@ -4,8 +4,8 @@ import VueRouter from "vue-router";
 import Home from "../views/Home.vue";
 import Contact from "../views/Contact.vue";
 
-import {firebaseApp} from '../services/firebaseService';
-import {getAuth} from 'firebase/auth';
+import {firebaseApp} from "../services/firebaseService";
+import {getAuth} from "firebase/auth";
 
 Vue.use(VueRouter);
 
@@ -37,9 +37,10 @@ router.beforeEach((to, from, next) => {
   const isAuthenticated = auth.currentUser
 
   if (!isAuthenticated && requireAuth){
-    next('/');
+    next("/");
   }else{
     next();
   }
 })
+
 export default router;

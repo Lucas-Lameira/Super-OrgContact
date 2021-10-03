@@ -1,6 +1,5 @@
 <template>
-  <!-- <div class="home deep-purple d-flex justify-space-between align-center"> -->
-  <div>
+  <div class="home">
     <v-container fluid >
       <v-row class="fillHeight" justify="center"> 
 
@@ -31,6 +30,7 @@
             </v-btn>                     
           </section>
         </v-col>
+
         <!-- homepage image -->     
         <v-col 
           align-self="end" 
@@ -50,31 +50,42 @@
 </template>
 
 <script>
-  import {getAuth, GoogleAuthProvider, signInWithPopup} from 'firebase/auth';
-  import {firebaseApp} from '../services/firebaseService';
-  
+  import {getAuth, GoogleAuthProvider, signInWithPopup} from "firebase/auth";
+  import {firebaseApp} from "../services/firebaseService";
+  import {getDatabase, ref, set} from "firebase/database";
+
   export default {
     name: "Home",
     methods: {
       async signIn(){
         try{
           const provider = new GoogleAuthProvider();
-          provider.addScope('https://www.googleapis.com/auth/contacts.readonly');
+          provider.addScope("https://www.googleapis.com/auth/contacts.readonly");
           const auth = getAuth(firebaseApp);
-          /* eslint-disable */
           const result = await signInWithPopup(auth, provider);
-          const user = result.user
 
-          
+          const credential = GoogleAuthProvider.credentialFromResult(result).toJSON();
+          const { accessToken } = credential
+
+          const user = result.user
+          const userId = user.uid
+
+
+          const database = getDatabase(firebaseApp)
+          await set(ref(database, "users/" + userId ), {
+            rgid: userId,
+            credentialAccessToken: accessToken
+          })
+
+          this.$router.push("/contact");
         }catch(error){
           console.log(error)
         }
-      },
+      }
     }
 }     
   
 </script>
-
 
 <style scoped>
 .fillHeight{

@@ -1,5 +1,5 @@
 <template>
-<div>
+<div class="contact">
   <nav >
     <v-app-bar dark color="deep-purple lighten-1" >
       <v-app-bar-nav-icon @click="drawer = !drawer"></v-app-bar-nav-icon>
@@ -12,8 +12,7 @@
 
       <v-btn 
         elevation="5" 
-        large 
-        outline 
+        large  
         color="green lighten-1 ma-2"
         @click="logOut()"
       >
@@ -23,15 +22,15 @@
     </v-app-bar>
 
     <v-navigation-drawer v-model="drawer" absolute temporary>
-      <template v-slot:prepend>
-        <v-list-item two-line>
+      <template v-slot:prepend >
+        <v-list-item two-line class="deep-purple white--text">
           <v-list-item-avatar>
-            <img src="https://randomuser.me/api/portraits/women/81.jpg">
+            <img :src=user.photoURL>
           </v-list-item-avatar>
 
-          <v-list-item-content>
-            <v-list-item-title>Jane Smith</v-list-item-title>
-            <v-list-item-subtitle>Logged In</v-list-item-subtitle>
+          <v-list-item-content >
+            <v-list-item-title>{{ user.displayName}}</v-list-item-title>
+            <v-list-item-subtitle class="grey--text darken-1 text--lighten-1">Signed In</v-list-item-subtitle>
           </v-list-item-content>
         </v-list-item>
       </template>
@@ -48,7 +47,7 @@
           </v-list-item-icon>
 
           <v-list-item-content>
-            <v-list-item-title>{{ item.title }}</v-list-item-title>
+            <v-list-item-title>{{ item.title ? item.title: 'No phone number' }}</v-list-item-title>
           </v-list-item-content>
         </v-list-item>
       </v-list>
@@ -65,39 +64,23 @@
       
       <v-col sm="12" md="5" lg="7" xl="6">
         <!-- contact list section -->
-        <section class="mt-8l">
-          <v-list three-line class="overflow rounded-lg">
-            
-            <template v-for="(item, index) in items">
-              <v-subheader
-                v-if="item.header"
-                :key="item.header"
-                v-text="item.header"
-              ></v-subheader>
+        <v-list three-line class="overflow rounded-lg" subheader>
+          <v-subheader>Contatos</v-subheader>        
+          <v-list-item v-for="item in contactList" :key="item.title">
 
-              <v-divider
-                v-else-if="item.divider"
-                :key="index"
-                :inset="item.inset"
-              ></v-divider>
+            <v-list-item>
+              <v-list-item-avatar>
+                <v-img :src="item.photo"></v-img>
+              </v-list-item-avatar>
 
-              <v-list-item
-                v-else
-                :key="item.title"
-              >
-                <v-list-item-avatar>
-                  <v-img :src="item.avatar"></v-img>
-                </v-list-item-avatar>
-
-                <v-list-item-content>
-                  <v-list-item-title v-html="item.title"></v-list-item-title>
-                  <v-list-item-subtitle v-html="item.subtitle"></v-list-item-subtitle>
-                </v-list-item-content>
-              </v-list-item>
-            </template>
-
-          </v-list>
-        </section>
+              <v-list-item-content>
+                <v-list-item-title v-html="item.name"></v-list-item-title>
+                <v-list-item-subtitle v-html="item.phone"></v-list-item-subtitle>
+                <v-divider v-divider></v-divider>
+              </v-list-item-content>
+            </v-list-item>
+          </v-list-item>
+        </v-list>
       </v-col>
 
       
@@ -118,94 +101,66 @@
 </template>
 
 <script>
+  import axios from 'axios'
   import {firebaseApp} from '../services/firebaseService';
   import {getAuth, signOut} from 'firebase/auth';
+  import { getDatabase, ref, child, get } from "firebase/database";
 
+  const auth = getAuth(firebaseApp)
+  
   export default {
     name: "Contact",
+    async created(){
+      const user = auth.currentUser;
+      const {email, displayName, phoneNumber, photoURL} = user;
+      this.user = {email, displayName, phoneNumber, photoURL}
+      
+      try{
+        const dbRef = ref(getDatabase());
+        const snapshot = await get(child(dbRef, `users/${user.uid}`));
+
+        if (!snapshot.exists()){
+          throw new Error('No data available');
+        } 
+
+        let {credentialAccessToken} = snapshot.val();
+
+        const userAccessToken = user.getIdToken();
+        const userRefreshToken = user.refreshToken;
+
+        const response = await axios.post('http://127.0.0.1:5000/', "teste", {
+          headers: {
+            'accessToken':  userAccessToken,
+            'refreshToken': userRefreshToken,
+            'token': credentialAccessToken
+          }
+        })
+
+        this.contactList = response.data;
+      }catch(error) {
+        console.error(error);
+      };
+    },
     data(){
-      /* static data until conect to the api */
       return {
         isLoggedIn: false,
         drawer: false,
+        user: null,
         itemss: [
-          { title: 'Home', icon: 'mdi-home-city' },
-          { title: 'My Account', icon: 'mdi-account' },
-          { title: 'Users', icon: 'mdi-account-group-outline' },
+          { title: auth.currentUser.email, icon: 'mdi-at' },
+          { title: auth.currentUser.phoneNumber, icon: 'mdi-cellphone-settings'},
         ],
-        items: [
-        { header: 'Contacts' },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/1.jpg',
-          title: 'Brunch this weekend?',
-          subtitle: `<span class="text--primary">Ali Connors</span> &mdash; I'll be in your neighborhood doing errands this weekend. Do you want to hang out?`,
-        },
-        { divider: true, inset: true },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/2.jpg',
-          title: 'Summer BBQ <span class="grey--text text--lighten-1">4</span>',
-          subtitle: `<span class="text--primary">to Alex, Scott, Jennifer</span> &mdash; Wish I could come, but I'm out of town this weekend.`,
-        },
-        { divider: true, inset: true },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/3.jpg',
-          title: 'Oui oui',
-          subtitle: '<span class="text--primary">Sandra Adams</span> &mdash; Do you have Paris recommendations? Have you ever been?',
-        },
-        { divider: true, inset: true },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/4.jpg',
-          title: 'Birthday gift',
-          subtitle: '<span class="text--primary">Trevor Hansen</span> &mdash; Have any ideas about what we should get Heidi for her birthday?',
-        },
-        { divider: true, inset: true },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/5.jpg',
-          title: 'Recipe to try',
-          subtitle: '<span class="text--primary">Britta Holt</span> &mdash; We should eat this: Grate, Squash, Corn, and tomatillo Tacos.',
-        },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/5.jpg',
-          title: 'Recipe to try',
-          subtitle: '<span class="text--primary">Britta Holt</span> &mdash; We should eat this: Grate, Squash, Corn, and tomatillo Tacos.',
-        },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/5.jpg',
-          title: 'Recipe to try',
-          subtitle: '<span class="text--primary">Britta Holt</span> &mdash; We should eat this: Grate, Squash, Corn, and tomatillo Tacos.',
-        },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/5.jpg',
-          title: 'Recipe to try',
-          subtitle: '<span class="text--primary">Britta Holt</span> &mdash; We should eat this: Grate, Squash, Corn, and tomatillo Tacos.',
-        },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/5.jpg',
-          title: 'Recipe to try',
-          subtitle: '<span class="text--primary">Britta Holt</span> &mdash; We should eat this: Grate, Squash, Corn, and tomatillo Tacos.',
-        },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/5.jpg',
-          title: 'Recipe to try',
-          subtitle: '<span class="text--primary">Britta Holt</span> &mdash; We should eat this: Grate, Squash, Corn, and tomatillo Tacos.',
-        },
-        {
-          avatar: 'https://cdn.vuetifyjs.com/images/lists/5.jpg',
-          title: 'Recipe to try',
-          subtitle: '<span class="text--primary">Britta Holt</span> &mdash; We should eat this: Grate, Squash, Corn, and tomatillo Tacos.',
-        },
-      ],
+        contactList: []
       }
     },
     methods: {
     async logOut() {
       try{
-        const auth = getAuth(firebaseApp);
-        await signOut(auth)
-        console.log("logged out")
-        this.$router.push("/")
+        await signOut(auth);
+        console.log("logged out");
+        this.$router.push("/");
       }catch(error){
-        console.log(error)
+        console.log(error);
       }
     },
   }

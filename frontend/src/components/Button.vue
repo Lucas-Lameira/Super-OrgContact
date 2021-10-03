@@ -1,4 +1,5 @@
 <template>
+<!-- further buttons in popup -->
 <div>
   <v-btn fab small class="deep-purple">
       <v-icon small color="white">
